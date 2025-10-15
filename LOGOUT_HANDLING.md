@@ -17,9 +17,11 @@ Isso causava um crash na aplicação.
 Quando uma sessão é desconectada com razão `LOGOUT`, o sistema agora:
 
 1. **Detecta o logout** no evento `disconnected`
-2. **Aguarda 2 segundos** para liberar recursos
+2. **Aguarda 3 segundos** para liberar recursos (aumentado de 2s)
 3. **Faz cleanup gracioso** usando `client.destroy()` sem tentar fazer logout novamente
-4. **Remove a sessão do Map** para liberar memória
+4. **Usa timeout de 5 segundos** para forçar cleanup se `destroy()` travar
+5. **Remove a sessão do Map** para liberar memória
+6. **Captura TODOS os erros** para evitar crash do servidor
 
 ### 2. Tratamento de Erros Melhorado
 
@@ -28,8 +30,15 @@ Quando uma sessão é desconectada com razão `LOGOUT`, o sistema agora:
 **Método `cleanupSession()`** (interno):
 - Usado após logout automático
 - Não tenta fazer logout novamente (já está desconectado)
-- Apenas destrói o cliente e remove do Map
-- Captura e loga erros sem crashar
+- **Race condition com timeout**: Se `destroy()` não responder em 5s, força continuação
+- Captura erros de Puppeteer (página fechada, contexto destruído)
+- Remove do Map mesmo se houver erros fatais
+- Silencia erros não-críticos (apenas loga warnings)
+
+**Handler `disconnected`**:
+- Captura erros do `eventHandler.onDisconnected()`
+- Force-remove do Map se cleanup falhar completamente
+- Tempo de espera aumentado para 3 segundos (mais seguro)
 
 **Método `deleteSession()`** (API pública):
 - Usado quando você quer deletar manualmente uma sessão

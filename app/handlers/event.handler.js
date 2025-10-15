@@ -43,7 +43,8 @@ class EventHandler {
       );
       logger.success("Welcome message sent!");
     } catch (error) {
-      logger.error("Error sending welcome message:", error.message);
+      // Silently fail - welcome message is not critical
+      logger.warn("Could not send welcome message:", error.message);
     }
   }
 

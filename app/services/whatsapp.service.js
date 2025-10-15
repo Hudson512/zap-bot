@@ -73,7 +73,12 @@ class WhatsAppService {
     // Disconnected
     this.client.on("disconnected", (reason) => {
       this.isReady = false;
-      this.eventHandler.onDisconnected(reason);
+      
+      try {
+        this.eventHandler.onDisconnected(reason);
+      } catch (error) {
+        logger.warn("Error in disconnect handler:", error.message);
+      }
       
       // If logout, warn user
       if (reason === "LOGOUT") {

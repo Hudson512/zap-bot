@@ -10,6 +10,26 @@ const sessionsRoutes = require("./routes/sessions.routes");
 
 const app = express();
 
+// Global error handlers to prevent server crashes
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('❌ Unhandled Promise Rejection:', reason);
+  logger.debug('Promise:', promise);
+  // Don't crash the server, just log it
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('❌ Uncaught Exception:', error.message);
+  logger.debug('Stack:', error.stack);
+  // Don't crash for Puppeteer protocol errors
+  if (error.message?.includes('Protocol error') || error.message?.includes('Session closed')) {
+    logger.warn('⚠️ Ignoring Puppeteer protocol error (likely from closed session)');
+    return;
+  }
+  // For other critical errors, still crash after logging
+  logger.error('💥 Critical error - server will restart');
+  process.exit(1);
+});
+
 // Middleware
 app.use(bodyParser.json());
 

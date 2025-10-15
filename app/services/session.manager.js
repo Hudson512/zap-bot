@@ -115,7 +115,12 @@ class SessionManager {
     client.on("disconnected", async (reason) => {
       session.isReady = false;
       logger.warn(`⚠️ Session ${session.id} disconnected:`, reason);
-      eventHandler.onDisconnected(reason);
+      
+      try {
+        eventHandler.onDisconnected(reason);
+      } catch (error) {
+        logger.warn(`Error in disconnect handler for ${session.id}:`, error.message);
+      }
       
       // If logout and auto-cleanup is enabled, cleanup session gracefully
       if (reason === "LOGOUT" && config.features.autoCleanupOnLogout) {
@@ -125,8 +130,10 @@ class SessionManager {
             await this.cleanupSession(session.id);
           } catch (error) {
             logger.error(`Failed to cleanup session ${session.id}:`, error.message);
+            // Force remove from map even if cleanup fails
+            this.sessions.delete(session.id);
           }
-        }, 2000); // Wait 2 seconds before cleanup
+        }, 5000); // Wait 5 seconds before cleanup to let all operations finish
       }
     });
 
@@ -193,22 +200,44 @@ class SessionManager {
     logger.info(`🧹 Cleaning up session: ${sessionId}`);
 
     try {
-      // Destroy client without logout (since it's already disconnected)
       if (session.client) {
         try {
-          await session.client.destroy();
+          // Step 1: Close all Puppeteer pages first to stop pending operations
+          logger.debug(`Closing Puppeteer pages for session ${sessionId}...`);
+          const pupPage = await session.client.pupPage?.catch(() => null);
+          if (pupPage) {
+            await pupPage.close().catch(() => null);
+          }
+          
+          // Step 2: Close the browser
+          const pupBrowser = await session.client.pupBrowser?.catch(() => null);
+          if (pupBrowser) {
+            await pupBrowser.close().catch(() => null);
+          }
+          
+          // Step 3: Destroy the client with timeout
+          logger.debug(`Destroying client for session ${sessionId}...`);
+          const destroyPromise = session.client.destroy();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Destroy timeout after 10s')), 10000)
+          );
+          
+          await Promise.race([destroyPromise, timeoutPromise]).catch(error => {
+            logger.warn(`Warning during client destroy for ${sessionId}:`, error.message);
+          });
         } catch (error) {
-          logger.warn(`Error destroying client for session ${sessionId}:`, error.message);
+          // Silently catch all errors during cleanup
+          logger.warn(`Warning during cleanup for ${sessionId}:`, error.message);
         }
       }
 
       // Remove from map
       this.sessions.delete(sessionId);
-      logger.success(`✅ Session ${sessionId} cleaned up`);
+      logger.success(`✅ Session ${sessionId} cleaned up successfully`);
       return true;
     } catch (error) {
-      logger.error(`Failed to cleanup session ${sessionId}:`, error.message);
-      // Remove from map anyway to avoid memory leaks
+      logger.error(`Error during cleanup of session ${sessionId}:`, error.message);
+      // Force remove from map to prevent memory leaks
       this.sessions.delete(sessionId);
       return false;
     }
