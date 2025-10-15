@@ -1,19 +1,30 @@
 require("dotenv").config();
 const express = require("express");
-const whatsapp = require("./whatsapp.js");
-const webhookApp = require("./webhook.js");
-
-const PORT = process.env.PORT || 3000;
+const config = require("./config");
+const logger = require("./utils/logger");
+const whatsappService = require("./services/whatsapp.service");
 
 const app = express();
 
-// Start WhatsApp client
-whatsapp.startWhatsApp();
+// Log startup
+logger.info("🚀 Starting ZapNode Application...");
+logger.info(`Environment: ${config.server.env}`);
 
-// Mount webhook endpoint
-app.use("/", webhookApp);
+// Start WhatsApp client
+whatsappService.initialize();
+
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    whatsapp: whatsappService.isClientReady() ? "connected" : "disconnected",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Start Express server
-app.listen(PORT, () => {
-  console.log(`Webhook server running on port ${PORT}`);
+app.listen(config.server.port, () => {
+  logger.success(`🌐 Webhook server running on port ${config.server.port}`);
+  logger.info(`📍 Health check: http://localhost:${config.server.port}/health`);
 });

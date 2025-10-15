@@ -1,52 +1,144 @@
-# ZapNode - Integração WhatsApp + Chatwoot
+# ZapNode - WhatsApp Integration
 
-## 🎯 Objetivo do Projeto
+Sistema modular e escalável para integração com WhatsApp usando Node.js.
 
-O **ZapNode** é uma integração que conecta o WhatsApp Web ao Chatwoot, permitindo centralizar o atendimento ao cliente em uma plataforma unificada. O projeto utiliza Node.js para criar uma ponte entre essas duas plataformas, possibilitando:
+## 📁 Estrutura do Projeto
 
-- Receber mensagens do WhatsApp e encaminhá-las para o Chatwoot
-- Enviar respostas do Chatwoot de volta para o WhatsApp
-- Gerenciar contatos e conversas de forma automática
-- Manter um histórico de conversas no banco de dados SQLite
-
-## ⚠️ Aviso Importante
-
-**Este é um protótipo em desenvolvimento e NÃO está pronto para produção.** Antes de usar em ambiente de produção, são necessários os seguintes aprimoramentos:
-
-- [ ] Implementar tratamento robusto de erros
-- [ ] Adicionar logs estruturados
-- [ ] Configurar rate limiting para webhooks
-- [ ] Implementar autenticação e autorização
-- [ ] Adicionar testes unitários e de integração
-- [ ] Configurar monitoramento e observabilidade
-- [ ] Implementar reconexão automática em caso de falhas
-- [ ] Adicionar validação de dados de entrada
-- [ ] Configurar backup e recuperação do banco de dados
-- [ ] Implementar segurança adicional (HTTPS, tokens seguros)
-
-## 🛠️ Requisitos
-
-### Pré-requisitos
-
-- **Node.js** (versão 16 ou superior)
-- **npm** ou **yarn**
-- **Chrome/Chromium** (para o Puppeteer)
-- **Conta no Chatwoot** com API habilitada
-
-## 📥 Instalação
-
-### 1. Clone o repositório
-
-```bash
-git clone <url-do-repositorio>
-cd zapnode
+```
+app/
+├── config/              # Configurações centralizadas
+│   └── index.js
+├── services/            # Serviços (WhatsApp, etc)
+│   └── whatsapp.service.js
+├── handlers/            # Handlers de eventos e mensagens
+│   ├── event.handler.js
+│   └── message.handler.js
+├── commands/            # Sistema de comandos
+│   ├── index.js
+│   ├── ping.command.js
+│   └── help.command.js
+├── utils/               # Utilitários
+│   ├── logger.js
+│   └── helpers.js
+├── server.js            # Entry point
+└── webhook.js           # Rotas do webhook
 ```
 
-### 2. Instale as dependências
+## 🚀 Como Usar
 
+### 1. Instalar Dependências
 ```bash
 npm install
 ```
+
+### 2. Configurar Variáveis de Ambiente
+Copie o arquivo `.env.example` para `.env` e ajuste as configurações:
+```bash
+cp .env.example .env
+```
+
+### 3. Iniciar o Servidor
+```bash
+npm start
+```
+
+### 4. Escanear QR Code
+Ao iniciar, um QR Code será exibido no terminal. Escaneie com seu WhatsApp.
+
+## 📝 Comandos Disponíveis
+
+- `!ping` - Testa a responsividade do bot
+- `!help` - Mostra todos os comandos disponíveis
+
+## 🔧 Adicionar Novos Comandos
+
+1. Crie um arquivo em `app/commands/` (ex: `exemplo.command.js`):
+
+```javascript
+const logger = require("../utils/logger");
+
+module.exports = {
+  name: "exemplo",
+  description: "Descrição do comando",
+  usage: "!exemplo [argumentos]",
+  
+  async execute(message, args) {
+    try {
+      // Sua lógica aqui
+      await message.reply("Resposta do comando");
+      logger.success("Comando executado");
+      return true;
+    } catch (error) {
+      logger.error("Erro:", error.message);
+      return false;
+    }
+  },
+};
+```
+
+2. Registre o comando em `app/commands/index.js`:
+
+```javascript
+const exemploCommand = require("./exemplo.command");
+this.register(exemploCommand);
+```
+
+## 🌐 Endpoints da API
+
+### Health Check
+```
+GET /health
+```
+
+Retorna o status do servidor e conexão WhatsApp.
+
+### Webhook Principal
+```
+POST /webhook
+```
+
+Recebe mensagens do sistema externo e envia via WhatsApp.
+
+### Webhook de Teste
+```
+POST /webhook/test
+```
+
+Payload:
+```json
+{
+  "phoneNumber": "244929782402",
+  "message": "Mensagem de teste"
+}
+```
+
+## � Estrutura Modular
+
+### Services
+Camada de serviços que encapsula a lógica de negócio.
+
+### Handlers
+Processam eventos e mensagens do WhatsApp.
+
+### Commands
+Sistema extensível de comandos com registro automático.
+
+### Utils
+Funções utilitárias reutilizáveis.
+
+### Config
+Configurações centralizadas com suporte a variáveis de ambiente.
+
+## 🛠️ Tecnologias
+
+- Node.js
+- Express
+- whatsapp-web.js
+- dotenv
+
+## 📄 Licença
+
+ISC
 
 ### 3. Configure as variáveis de ambiente
 

@@ -1,0 +1,114 @@
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const config = require("../config");
+const logger = require("../utils/logger");
+const EventHandler = require("../handlers/event.handler");
+const messageHandler = require("../handlers/message.handler");
+
+class WhatsAppService {
+  constructor() {
+    this.client = null;
+    this.eventHandler = null;
+    this.isReady = false;
+  }
+
+  initialize() {
+    logger.info("🔄 Creating WhatsApp client...");
+
+    this.client = new Client({
+      authStrategy: new LocalAuth({
+        clientId: config.whatsapp.sessionName,
+      }),
+      puppeteer: {
+        executablePath: config.whatsapp.chromePath,
+        headless: config.whatsapp.headless,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      },
+      webVersionCache: {
+        type: "remote",
+        remotePath: "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html",
+      },
+    });
+
+    // Initialize event handler
+    this.eventHandler = new EventHandler(this.client);
+
+    // Setup event listeners
+    this.setupEventListeners();
+
+    // Initialize client with error handling
+    logger.info("🚀 Initializing WhatsApp client...");
+    
+    this.client.initialize().catch((error) => {
+      logger.error("Failed to initialize WhatsApp client:", error.message);
+      logger.warn("Retrying in 10 seconds...");
+      
+      setTimeout(() => {
+        logger.info("Retrying initialization...");
+        this.initialize();
+      }, 10000);
+    });
+  }
+
+  setupEventListeners() {
+    // QR Code
+    this.client.on("qr", (qr) => this.eventHandler.onQR(qr));
+
+    // Ready
+    this.client.on("ready", async () => {
+      this.isReady = true;
+      await this.eventHandler.onReady();
+    });
+
+    // Authentication
+    this.client.on("authenticated", () => this.eventHandler.onAuthenticated());
+
+    // Loading screen
+    this.client.on("loading_screen", (percent, message) =>
+      this.eventHandler.onLoadingScreen(percent, message)
+    );
+
+    // Auth failure
+    this.client.on("auth_failure", (msg) => this.eventHandler.onAuthFailure(msg));
+
+    // Disconnected
+    this.client.on("disconnected", (reason) => {
+      this.isReady = false;
+      this.eventHandler.onDisconnected(reason);
+    });
+
+    // Remote session saved
+    this.client.on("remote_session_saved", () =>
+      this.eventHandler.onRemoteSessionSaved()
+    );
+
+    // Messages
+    this.client.on("message", async (message) => {
+      await messageHandler.handle(message);
+    });
+  }
+
+  getClient() {
+    return this.client;
+  }
+
+  isClientReady() {
+    return this.isReady;
+  }
+
+  async sendMessage(phoneNumber, message) {
+    if (!this.isReady) {
+      throw new Error("WhatsApp client is not ready");
+    }
+
+    try {
+      await this.client.sendMessage(phoneNumber, message);
+      logger.success(`Message sent to ${phoneNumber}`);
+      return true;
+    } catch (error) {
+      logger.error("Error sending message:", error.message);
+      throw error;
+    }
+  }
+}
+
+module.exports = new WhatsAppService();
