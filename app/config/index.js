@@ -13,6 +13,7 @@ module.exports = {
     sessionName: process.env.SESSION_NAME || "zapnode-session",
     chromePath: process.env.CHROME_PATH || "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     headless: process.env.HEADLESS === "true" || false,
+    startDefaultSession: process.env.START_DEFAULT_SESSION !== "false", // Default true
   },
 
   // Webhook configuration
@@ -28,5 +29,6 @@ module.exports = {
     ignoreGroups: process.env.IGNORE_GROUPS !== "false", // Default true
     ignoreStatus: process.env.IGNORE_STATUS !== "false", // Default true
     ignoreNewsletters: process.env.IGNORE_NEWSLETTERS !== "false", // Default true
+    autoCleanupOnLogout: process.env.AUTO_CLEANUP_ON_LOGOUT !== "false", // Default true
   },
 };

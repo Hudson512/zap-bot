@@ -74,6 +74,11 @@ class WhatsAppService {
     this.client.on("disconnected", (reason) => {
       this.isReady = false;
       this.eventHandler.onDisconnected(reason);
+      
+      // If logout, warn user
+      if (reason === "LOGOUT") {
+        logger.warn("⚠️ Default session logged out. You'll need to scan QR code again on next restart.");
+      }
     });
 
     // Remote session saved

@@ -2,6 +2,16 @@
 
 Sistema modular e escalável para integração com WhatsApp usando Node.js.
 
+## ✨ Características
+
+- 🔐 Autenticação persistente com LocalAuth
+- 📱 **Suporte a múltiplas sessões** (múltiplas contas WhatsApp)
+- 🎯 Sistema de comandos extensível
+- 🔌 Webhook para integração externa
+- 🎨 Sistema de logging estruturado
+- 🚀 Arquitetura modular e escalável
+- 🛡️ Filtragem de mensagens (grupos, status, newsletters)
+
 ## 📁 Estrutura do Projeto
 
 ```
@@ -90,7 +100,33 @@ this.register(exemploCommand);
 GET /health
 ```
 
-Retorna o status do servidor e conexão WhatsApp.
+Retorna o status do servidor, conexão WhatsApp e todas as sessões ativas.
+
+### Sessões (Multi-Session Support)
+
+#### Listar sessões
+```
+GET /sessions
+```
+
+#### Criar nova sessão
+```
+POST /sessions
+Body: { "sessionId": "my-session", "headless": true }
+```
+
+#### Enviar mensagem por sessão
+```
+POST /sessions/:sessionId/send
+Body: { "phoneNumber": "244929782402", "message": "Hello!" }
+```
+
+#### Deletar sessão
+```
+DELETE /sessions/:sessionId
+```
+
+**📚 Veja a documentação completa em [MULTI_SESSION.md](MULTI_SESSION.md)**
 
 ### Webhook Principal
 ```
@@ -98,6 +134,21 @@ POST /webhook
 ```
 
 Recebe mensagens do sistema externo e envia via WhatsApp.
+
+**Payload com sessão específica:**
+```json
+{
+  "message_type": "outgoing",
+  "private": false,
+  "sessionId": "my-session",
+  "conversation": {
+    "meta": {
+      "sender": { "phone_number": "244929782402" }
+    }
+  },
+  "content": "Message text"
+}
+```
 
 ### Webhook de Teste
 ```
@@ -108,7 +159,8 @@ Payload:
 ```json
 {
   "phoneNumber": "244929782402",
-  "message": "Mensagem de teste"
+  "message": "Mensagem de teste",
+  "sessionId": "default"
 }
 ```
 
