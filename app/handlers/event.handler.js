@@ -1,10 +1,12 @@
 const logger = require("../utils/logger");
 const config = require("../config");
 const helpers = require("../utils/helpers");
+const db = require("../services/database.service");
 
 class EventHandler {
-  constructor(client) {
+  constructor(client, sessionId = "default") {
     this.client = client;
+    this.sessionId = sessionId;
   }
 
   onQR(qr) {
@@ -21,6 +23,27 @@ class EventHandler {
       const info = this.client.info;
       logger.info(`📱 Connected as: ${info.pushname}`);
       logger.info(`📞 Phone: ${info.wid.user}`);
+
+      // Get WhatsApp Web version
+      let whatsappVersion = null;
+      try {
+        whatsappVersion = await this.client.getWWebVersion();
+      } catch (error) {
+        logger.warn("Could not get WhatsApp version:", error.message);
+      }
+
+      // Save session to database
+      try {
+        db.updateSessionStatus(this.sessionId, "connected", new Date().toISOString());
+        db.saveSession(this.sessionId, {
+          phoneNumber: info.wid.user,
+          status: "connected",
+          whatsappVersion: whatsappVersion
+        });
+        logger.debug(`💾 Saved session ${this.sessionId} to database`);
+      } catch (dbError) {
+        logger.warn("Failed to save session to database:", dbError.message);
+      }
 
       // Send welcome message if enabled
       if (config.features.welcomeMessage) {
@@ -63,6 +86,14 @@ class EventHandler {
 
   onDisconnected(reason) {
     logger.warn("Client disconnected:", reason);
+    
+    // Update session status in database
+    try {
+      db.updateSessionStatus(this.sessionId, "disconnected", new Date().toISOString());
+      logger.debug(`💾 Updated session ${this.sessionId} status to disconnected`);
+    } catch (dbError) {
+      logger.warn("Failed to update session status:", dbError.message);
+    }
   }
 
   onRemoteSessionSaved() {

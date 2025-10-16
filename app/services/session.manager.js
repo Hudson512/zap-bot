@@ -50,8 +50,8 @@ class SessionManager {
       },
     });
 
-    // Initialize event handler
-    session.eventHandler = new EventHandler(session.client);
+    // Initialize event handler with sessionId
+    session.eventHandler = new EventHandler(session.client, sessionId);
 
     // Setup event listeners
     this.setupEventListeners(session);
@@ -90,6 +90,15 @@ class SessionManager {
       session.isReady = true;
       session.readyAt = new Date();
       logger.success(`✅ Session ${session.id} is ready`);
+      
+      // Get and log WhatsApp Web version
+      try {
+        const version = await client.getWWebVersion();
+        logger.info(`📱 WhatsApp Web Version for ${session.id}: ${version}`);
+      } catch (error) {
+        logger.warn(`Could not get WhatsApp Web version for ${session.id}:`, error.message);
+      }
+      
       await eventHandler.onReady();
     });
 
@@ -146,7 +155,7 @@ class SessionManager {
     // Messages
     client.on("message", async (message) => {
       logger.debug(`📩 Message received on session ${session.id}`);
-      await messageHandler.handle(message);
+      await messageHandler.handle(message, session.id);
     });
   }
 

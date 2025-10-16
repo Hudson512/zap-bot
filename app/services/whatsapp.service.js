@@ -29,8 +29,8 @@ class WhatsAppService {
       },
     });
 
-    // Initialize event handler
-    this.eventHandler = new EventHandler(this.client);
+    // Initialize event handler with default sessionId
+    this.eventHandler = new EventHandler(this.client, "default");
 
     // Setup event listeners
     this.setupEventListeners();
@@ -56,6 +56,15 @@ class WhatsAppService {
     // Ready
     this.client.on("ready", async () => {
       this.isReady = true;
+      
+      // Get and log WhatsApp Web version
+      try {
+        const version = await this.client.getWWebVersion();
+        logger.info(`📱 WhatsApp Web Version: ${version}`);
+      } catch (error) {
+        logger.warn("Could not get WhatsApp Web version:", error.message);
+      }
+      
       await this.eventHandler.onReady();
     });
 

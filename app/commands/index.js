@@ -11,10 +11,12 @@ class CommandRegistry {
     const pingCommand = require("./ping.command");
     const helpCommand = require("./help.command");
     const infoCommand = require("./info.command");
+    const statsCommand = require("./stats.command");
     
     this.register(pingCommand);
     this.register(helpCommand);
     this.register(infoCommand);
+    this.register(statsCommand);
     
     logger.info(`Loaded ${this.commands.size} command(s)`);
   }

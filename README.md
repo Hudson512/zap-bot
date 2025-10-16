@@ -6,11 +6,13 @@ Sistema modular e escalável para integração com WhatsApp usando Node.js.
 
 - 🔐 Autenticação persistente com LocalAuth
 - 📱 **Suporte a múltiplas sessões** (múltiplas contas WhatsApp)
+- 💾 **Persistência de dados com SQLite**
 - 🎯 Sistema de comandos extensível
 - 🔌 Webhook para integração externa
 - 🎨 Sistema de logging estruturado
 - 🚀 Arquitetura modular e escalável
 - 🛡️ Filtragem de mensagens (grupos, status, newsletters)
+- 📊 **Estatísticas e analytics**
 
 ## 📁 Estrutura do Projeto
 
@@ -18,20 +20,29 @@ Sistema modular e escalável para integração com WhatsApp usando Node.js.
 app/
 ├── config/              # Configurações centralizadas
 │   └── index.js
-├── services/            # Serviços (WhatsApp, etc)
-│   └── whatsapp.service.js
+├── services/            # Serviços (WhatsApp, Database, etc)
+│   ├── whatsapp.service.js
+│   ├── session.manager.js
+│   └── database.service.js
 ├── handlers/            # Handlers de eventos e mensagens
 │   ├── event.handler.js
 │   └── message.handler.js
 ├── commands/            # Sistema de comandos
 │   ├── index.js
 │   ├── ping.command.js
-│   └── help.command.js
+│   ├── help.command.js
+│   ├── info.command.js
+│   └── stats.command.js
+├── routes/              # Rotas da API
+│   ├── sessions.routes.js
+│   └── database.routes.js
 ├── utils/               # Utilitários
 │   ├── logger.js
 │   └── helpers.js
 ├── server.js            # Entry point
 └── webhook.js           # Rotas do webhook
+data/
+└── zapnode.db           # SQLite database (auto-created)
 ```
 
 ## 🚀 Como Usar
@@ -55,10 +66,54 @@ npm start
 ### 4. Escanear QR Code
 Ao iniciar, um QR Code será exibido no terminal. Escaneie com seu WhatsApp.
 
-## 📝 Comandos Disponíveis
+### 5. Acessar Documentação da API
+Abra no navegador: **http://localhost:3000/api-docs**
+
+## 📚 Documentação da API (Swagger)
+
+O ZapNode inclui documentação interativa da API usando **Swagger UI**:
+
+- **URL:** http://localhost:3000/api-docs
+- **JSON:** http://localhost:3000/api-docs.json
+
+### Recursos do Swagger:
+- 📖 Documentação completa de todos os endpoints
+- 🧪 Teste interativo das APIs diretamente no navegador
+- � Schemas e exemplos de request/response
+- 🔍 Busca e filtros por tags
+
+### Endpoints Principais:
+
+#### Health
+- `GET /health` - Status da aplicação
+
+#### Sessions (Multi-Sessão)
+- `GET /sessions` - Listar todas as sessões
+- `POST /sessions` - Criar nova sessão
+- `GET /sessions/:id` - Detalhes de uma sessão
+- `GET /sessions/:id/status` - Status da sessão
+- `POST /sessions/:id/send` - Enviar mensagem
+- `DELETE /sessions/:id` - Deletar sessão
+
+#### Database (Persistência)
+- `GET /database/stats` - Estatísticas gerais
+- `GET /database/sessions` - Sessões no banco
+- `GET /database/messages` - Histórico de mensagens
+- `GET /database/messages/search` - Buscar mensagens
+- `GET /database/contacts` - Listar contatos
+- `GET /database/contacts/top` - Top contatos
+- `GET /database/commands/stats` - Estatísticas de comandos
+- `POST /database/cleanup` - Limpar dados antigos
+
+#### Webhook
+- `POST /webhook` - Receber mensagens externas
+
+## �📝 Comandos Disponíveis
 
 - `!ping` - Testa a responsividade do bot
 - `!help` - Mostra todos os comandos disponíveis
+- `!info` - Informações do sistema
+- `!stats` - Estatísticas do database
 
 ## 🔧 Adicionar Novos Comandos
 

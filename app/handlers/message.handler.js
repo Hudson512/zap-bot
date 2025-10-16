@@ -1,11 +1,19 @@
 const logger = require("../utils/logger");
 const helpers = require("../utils/helpers");
 const commandRegistry = require("../commands");
+const db = require("../services/database.service");
 
 class MessageHandler {
-  async handle(message) {
+  async handle(message, sessionId = "default") {
     try {
       const chatId = message.from;
+
+      // Save message to database (before any filtering)
+      try {
+        db.saveMessage(message, sessionId);
+      } catch (dbError) {
+        logger.warn("Failed to save message to database:", dbError.message);
+      }
 
       // Ignore messages from groups, status, and newsletters
       if (helpers.shouldIgnoreMessage(chatId)) {
@@ -24,16 +32,16 @@ class MessageHandler {
 
       // Check if it's a command
       if (helpers.isCommand(message.body)) {
-        await this.handleCommand(message);
+        await this.handleCommand(message, sessionId);
       } else {
-        await this.handleRegularMessage(message);
+        await this.handleRegularMessage(message, sessionId);
       }
     } catch (error) {
       logger.error("Error handling message:", error.message);
     }
   }
 
-  async handleCommand(message) {
+  async handleCommand(message, sessionId = "default") {
     const { command, args } = helpers.parseCommand(message.body);
 
     logger.debug(`Command received: ${command}`, args);
@@ -41,6 +49,21 @@ class MessageHandler {
     // Check if command exists
     if (!commandRegistry.has(command)) {
       logger.warn(`Unknown command: ${command}`);
+      
+      // Log failed command
+      try {
+        db.logCommandUsage(
+          sessionId,
+          command,
+          message.from,
+          message.from,
+          args,
+          false,
+          "Unknown command"
+        );
+      } catch (dbError) {
+        logger.warn("Failed to log command usage:", dbError.message);
+      }
       
       // Optionally send help message
       if (command === "help") {
@@ -53,13 +76,44 @@ class MessageHandler {
     const cmd = commandRegistry.get(command);
     try {
       await cmd.execute(message, args);
+      
+      // Log successful command
+      try {
+        db.logCommandUsage(
+          sessionId,
+          command,
+          message.from,
+          message.from,
+          args,
+          true,
+          null
+        );
+      } catch (dbError) {
+        logger.warn("Failed to log command usage:", dbError.message);
+      }
     } catch (error) {
       logger.error(`Error executing command ${command}:`, error.message);
+      
+      // Log failed command
+      try {
+        db.logCommandUsage(
+          sessionId,
+          command,
+          message.from,
+          message.from,
+          args,
+          false,
+          error.message
+        );
+      } catch (dbError) {
+        logger.warn("Failed to log command usage:", dbError.message);
+      }
+      
       await message.reply("❌ Error executing command. Please try again.");
     }
   }
 
-  async handleRegularMessage(message) {
+  async handleRegularMessage(message, sessionId = "default") {
     // Handle regular messages here
     // You can add custom logic, AI responses, etc.
     logger.debug("Regular message received");
