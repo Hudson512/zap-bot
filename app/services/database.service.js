@@ -217,7 +217,7 @@ class DatabaseService {
   /**
    * Save message
    */
-  saveMessage(message, sessionId = "default") {
+  saveMessage(message, sessionId = "default", sessionPhoneNumber = null) {
     try {
       const stmt = this.db.prepare(`
         INSERT INTO messages (
@@ -227,17 +227,29 @@ class DatabaseService {
         ON CONFLICT(id) DO NOTHING
       `);
 
+      // Handle both received messages and sent messages
+      const messageId = message.id._serialized || message.id.id || message.id;
+      
       const chatType = message.from.includes("@g.us") ? "group" 
                      : message.from.includes("@broadcast") ? "broadcast"
                      : message.from.includes("@newsletter") ? "newsletter"
                      : "private";
 
+      // CHAT LOGIC:
+      // chat_id = sessionId + contact number (the OTHER person)
+      // - If message has "to" field, it means WE sent it → contact = recipient (to)
+      // - If message only has "from", it means we RECEIVED it → contact = sender (from)
+      // Result: chat_id = "sessionId-contactNumber" (unique per session)
+      
+      const contactNumber = message.to ? message.to : message.from;
+      const chatId = `${sessionId}-${contactNumber}`;
+
       stmt.run(
-        message.id._serialized,
+        messageId,
         sessionId,
         message.from,
         message.to || null,
-        message.from,
+        chatId,
         chatType,
         message.body || null,
         message.type || "chat",
@@ -247,10 +259,10 @@ class DatabaseService {
         message.isStatus ? 1 : 0
       );
 
-      // Update contact
-      this.updateContact(message.from, sessionId);
+      // Update contact - always the OTHER person
+      this.updateContact(contactNumber, sessionId);
 
-      logger.debug(`💾 Saved message: ${message.id._serialized}`);
+      logger.debug(`💾 Saved message: ${messageId} (chat: ${chatId})`);
     } catch (error) {
       logger.warn("Failed to save message:", error.message);
     }
@@ -307,12 +319,70 @@ class DatabaseService {
     return stmt.all(...params);
   }
 
+  /**
+   * Get all chats (unique conversations) for a session
+   * Returns list of chat_ids with last message, message count, etc.
+   * chat_id format: "sessionId-contactNumber@c.us"
+   */
+  getChatsBySession(sessionId, limit = 50) {
+    const stmt = this.db.prepare(`
+      SELECT 
+        chat_id,
+        session_id,
+        REPLACE(chat_id, session_id || '-', '') as contact_number,
+        COUNT(*) as message_count,
+        MAX(timestamp) as last_message_time,
+        (SELECT body FROM messages m2 
+         WHERE m2.chat_id = messages.chat_id 
+           AND m2.session_id = messages.session_id 
+         ORDER BY timestamp DESC LIMIT 1) as last_message,
+        (SELECT message_type FROM messages m2 
+         WHERE m2.chat_id = messages.chat_id 
+           AND m2.session_id = messages.session_id 
+         ORDER BY timestamp DESC LIMIT 1) as last_message_type,
+        (SELECT has_media FROM messages m2 
+         WHERE m2.chat_id = messages.chat_id 
+           AND m2.session_id = messages.session_id 
+         ORDER BY timestamp DESC LIMIT 1) as last_has_media
+      FROM messages
+      WHERE session_id = ?
+        AND chat_type = 'private'
+      GROUP BY chat_id, session_id
+      ORDER BY last_message_time DESC
+      LIMIT ?
+    `);
+    
+    return stmt.all(sessionId, limit);
+  }
+
+  /**
+   * Get messages from a specific chat
+   */
+  getMessagesBySessionAndChat(sessionId, chatId, limit = 50, offset = 0) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM messages 
+      WHERE session_id = ? 
+        AND chat_id = ?
+      ORDER BY timestamp ASC
+      LIMIT ? OFFSET ?
+    `);
+    
+    return stmt.all(sessionId, chatId, limit, offset);
+  }
+
   // ==================== CONTACT METHODS ====================
 
   /**
    * Update or create contact
+   * Only saves private contacts (ending with @c.us)
    */
   updateContact(phoneNumber, sessionId, name = null) {
+    // Only save private contacts (@c.us)
+    if (!phoneNumber.endsWith("@c.us")) {
+      logger.debug(`Skipping non-private contact: ${phoneNumber}`);
+      return;
+    }
+
     const stmt = this.db.prepare(`
       INSERT INTO contacts (id, session_id, phone_number, name, message_count)
       VALUES (?, ?, ?, ?, 1)
@@ -340,11 +410,13 @@ class DatabaseService {
 
   /**
    * Get all contacts for session
+   * Only returns private contacts (@c.us)
    */
   getContactsBySession(sessionId, limit = 100) {
     const stmt = this.db.prepare(`
       SELECT * FROM contacts 
       WHERE session_id = ? 
+        AND phone_number LIKE '%@c.us'
       ORDER BY last_seen DESC 
       LIMIT ?
     `);
@@ -354,11 +426,13 @@ class DatabaseService {
 
   /**
    * Get top contacts (by message count)
+   * Only returns private contacts (@c.us)
    */
   getTopContacts(sessionId, limit = 10) {
     const stmt = this.db.prepare(`
       SELECT * FROM contacts 
       WHERE session_id = ? 
+        AND phone_number LIKE '%@c.us'
       ORDER BY message_count DESC 
       LIMIT ?
     `);
@@ -484,12 +558,18 @@ class DatabaseService {
       DELETE FROM command_usage WHERE executed_at < ?
     `).run(cutoffDate.toISOString()).changes;
 
-    logger.info(`🧹 Cleaned up ${messagesDeleted} old messages and ${commandsDeleted} old command logs`);
+    // Delete non-private contacts (groups, status, newsletters)
+    const nonPrivateContactsDeleted = this.db.prepare(`
+      DELETE FROM contacts 
+      WHERE phone_number NOT LIKE '%@c.us'
+    `).run().changes;
+
+    logger.info(`🧹 Cleaned up ${messagesDeleted} old messages, ${commandsDeleted} old command logs, and ${nonPrivateContactsDeleted} non-private contacts`);
     
     // Run VACUUM to reclaim space
     this.db.exec("VACUUM");
     
-    return { messagesDeleted, commandsDeleted };
+    return { messagesDeleted, commandsDeleted, nonPrivateContactsDeleted };
   }
 }
 

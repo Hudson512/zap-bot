@@ -95,6 +95,59 @@ router.get("/messages", (req, res) => {
   }
 });
 
+// GET /database/chats - Get all chats (conversations) for a session
+router.get("/chats", (req, res) => {
+  try {
+    const { sessionId = "default", limit = 50 } = req.query;
+
+    const chats = db.getChatsBySession(sessionId, parseInt(limit));
+
+    res.json({
+      success: true,
+      sessionId,
+      count: chats.length,
+      data: chats
+    });
+  } catch (error) {
+    logger.error("Error getting chats:", error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// GET /database/chats/:chatId - Get messages from a specific chat
+router.get("/chats/:chatId/messages", (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { sessionId = "default", limit = 50, offset = 0 } = req.query;
+
+    const messages = db.getMessagesBySessionAndChat(
+      sessionId, 
+      chatId, 
+      parseInt(limit), 
+      parseInt(offset)
+    );
+
+    res.json({
+      success: true,
+      sessionId,
+      chatId,
+      count: messages.length,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      data: messages
+    });
+  } catch (error) {
+    logger.error("Error getting chat messages:", error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET /database/messages/search - Search messages
 router.get("/messages/search", (req, res) => {
   try {

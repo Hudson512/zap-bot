@@ -8,13 +8,6 @@ class MessageHandler {
     try {
       const chatId = message.from;
 
-      // Save message to database (before any filtering)
-      try {
-        db.saveMessage(message, sessionId);
-      } catch (dbError) {
-        logger.warn("Failed to save message to database:", dbError.message);
-      }
-
       // Ignore messages from groups, status, and newsletters
       if (helpers.shouldIgnoreMessage(chatId)) {
         logger.debug(`Ignoring message from: ${chatId}`);
@@ -25,6 +18,13 @@ class MessageHandler {
       if (!helpers.isPrivateChat(chatId)) {
         logger.debug(`Non-private chat ignored: ${chatId}`);
         return;
+      }
+
+      // Save ONLY private messages to database
+      try {
+        db.saveMessage(message, sessionId);
+      } catch (dbError) {
+        logger.warn("Failed to save message to database:", dbError.message);
       }
 
       // Log incoming message

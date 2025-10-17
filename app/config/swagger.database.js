@@ -388,6 +388,235 @@ module.exports = {
         }
       }
     },
+    '/database/chats': {
+      get: {
+        tags: ['Database'],
+        summary: 'Get all chats (conversations) for a session',
+        description: 'Returns a list of unique conversations with message count, last message preview, and timestamp. Each chat is identified by chat_id format: "sessionId-contactNumber"',
+        parameters: [
+          {
+            name: 'sessionId',
+            in: 'query',
+            required: false,
+            description: 'Session ID (defaults to "default")',
+            schema: {
+              type: 'string',
+              default: 'default',
+              example: 'default'
+            }
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            description: 'Maximum number of chats to return',
+            schema: {
+              type: 'integer',
+              default: 50,
+              minimum: 1,
+              maximum: 1000,
+              example: 50
+            }
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Chats retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: {
+                      type: 'boolean',
+                      example: true
+                    },
+                    sessionId: {
+                      type: 'string',
+                      example: 'default'
+                    },
+                    count: {
+                      type: 'integer',
+                      description: 'Number of chats returned',
+                      example: 5
+                    },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          chat_id: {
+                            type: 'string',
+                            description: 'Chat ID (format: sessionId-contactNumber)',
+                            example: 'default-244929782402@c.us'
+                          },
+                          session_id: {
+                            type: 'string',
+                            example: 'default'
+                          },
+                          contact_number: {
+                            type: 'string',
+                            description: 'Contact phone number (extracted from chat_id)',
+                            example: '244929782402@c.us'
+                          },
+                          message_count: {
+                            type: 'integer',
+                            description: 'Total messages in this chat',
+                            example: 15
+                          },
+                          last_message_time: {
+                            type: 'string',
+                            format: 'date-time',
+                            description: 'Timestamp of last message',
+                            example: '2025-10-17T10:30:00.000Z'
+                          },
+                          last_message: {
+                            type: 'string',
+                            description: 'Last message text',
+                            example: 'Hello from ZapNode!'
+                          },
+                          last_message_type: {
+                            type: 'string',
+                            description: 'Type of last message',
+                            example: 'chat'
+                          },
+                          last_has_media: {
+                            type: 'integer',
+                            description: 'Whether last message has media (0 or 1)',
+                            example: 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          500: {
+            description: 'Server error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Error'
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/database/chats/{chatId}/messages': {
+      get: {
+        tags: ['Database'],
+        summary: 'Get messages from a specific chat',
+        description: 'Returns all messages from a conversation with a specific contact, ordered chronologically. The chatId must be in format: "sessionId-contactNumber"',
+        parameters: [
+          {
+            name: 'chatId',
+            in: 'path',
+            required: true,
+            description: 'Chat ID in format: sessionId-contactNumber (e.g., "default-244929782402@c.us")',
+            schema: {
+              type: 'string',
+              example: 'default-244929782402@c.us'
+            }
+          },
+          {
+            name: 'sessionId',
+            in: 'query',
+            required: false,
+            description: 'Session ID (defaults to "default")',
+            schema: {
+              type: 'string',
+              default: 'default',
+              example: 'default'
+            }
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            description: 'Maximum number of messages to return',
+            schema: {
+              type: 'integer',
+              default: 50,
+              minimum: 1,
+              maximum: 1000,
+              example: 50
+            }
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            description: 'Number of messages to skip for pagination',
+            schema: {
+              type: 'integer',
+              default: 0,
+              minimum: 0,
+              example: 0
+            }
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Chat messages retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: {
+                      type: 'boolean',
+                      example: true
+                    },
+                    sessionId: {
+                      type: 'string',
+                      example: 'default'
+                    },
+                    chatId: {
+                      type: 'string',
+                      description: 'Chat ID',
+                      example: '244929782402@c.us'
+                    },
+                    count: {
+                      type: 'integer',
+                      description: 'Number of messages returned',
+                      example: 15
+                    },
+                    limit: {
+                      type: 'integer',
+                      example: 50
+                    },
+                    offset: {
+                      type: 'integer',
+                      example: 0
+                    },
+                    data: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/Message'
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          500: {
+            description: 'Server error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Error'
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     '/database/messages/search': {
       get: {
         tags: ['Database'],
@@ -744,7 +973,7 @@ module.exports = {
       post: {
         tags: ['Database'],
         summary: 'Cleanup old database data',
-        description: 'Deletes messages and command logs older than the specified number of days. Also runs VACUUM to reclaim disk space.',
+        description: 'Deletes messages and command logs older than the specified number of days. Also removes non-private contacts (groups, status, newsletters). Runs VACUUM to reclaim disk space.',
         requestBody: {
           required: false,
           content: {
@@ -792,6 +1021,11 @@ module.exports = {
                           type: 'integer',
                           description: 'Number of command logs deleted',
                           example: 145
+                        },
+                        nonPrivateContactsDeleted: {
+                          type: 'integer',
+                          description: 'Number of non-private contacts removed (groups, status, newsletters)',
+                          example: 12
                         }
                       }
                     }

@@ -3,6 +3,7 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const config = require("../config");
 const EventHandler = require("../handlers/event.handler");
 const messageHandler = require("../handlers/message.handler");
+const db = require("./database.service");
 
 /**
  * SessionManager - Manages multiple WhatsApp client sessions
@@ -314,8 +315,36 @@ class SessionManager {
     }
 
     try {
-      await session.client.sendMessage(phoneNumber, message);
+      // Send the message via WhatsApp
+      const sentMessage = await session.client.sendMessage(phoneNumber, message);
+      
       logger.success(`✅ Message sent via session ${sessionId} to ${phoneNumber}`);
+      
+      // Save sent message to database
+      try {
+        // Get session's phone number
+        const sessionInfo = await session.client.info;
+        const fromNumber = `${sessionInfo.wid.user}@c.us`;
+        
+        // Create message object to save
+        const messageToSave = {
+          id: sentMessage.id,
+          from: fromNumber, // Session's own number
+          to: phoneNumber,
+          body: message,
+          type: sentMessage.type || 'chat',
+          hasMedia: sentMessage.hasMedia || false,
+          timestamp: sentMessage.timestamp || Math.floor(Date.now() / 1000),
+          isForwarded: false,
+          isStatus: false
+        };
+        
+        db.saveMessage(messageToSave, sessionId);
+        logger.debug(`💾 Saved sent message to database (session: ${sessionId})`);
+      } catch (dbError) {
+        logger.warn("Failed to save sent message to database:", dbError.message);
+      }
+      
       return true;
     } catch (error) {
       logger.error(`Failed to send message via session ${sessionId}:`, error.message);
