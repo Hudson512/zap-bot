@@ -1,5 +1,7 @@
 const swaggerJsdoc = require("swagger-jsdoc");
 const config = require("./index");
+const databaseDocs = require("./swagger.database");
+const sessionsDocs = require("./swagger.sessions");
 
 const options = {
   definition: {
@@ -167,8 +169,13 @@ const options = {
         },
       },
     },
+    // Import external documentation
+    paths: {
+      ...databaseDocs.paths,
+      ...sessionsDocs.paths,
+    },
   },
-  apis: ["./app/server.js", "./app/routes/*.js", "./app/webhook.js"],
+  apis: ["./app/server.js", "./app/webhook.js"],
 };
 
 const swaggerSpec = swaggerJsdoc(options);

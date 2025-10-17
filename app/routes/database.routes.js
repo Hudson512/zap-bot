@@ -3,41 +3,7 @@ const router = express.Router();
 const db = require("../services/database.service");
 const logger = require("../utils/logger");
 
-/**
- * @swagger
- * /database/stats:
- *   get:
- *     summary: Get database statistics
- *     description: Returns overall statistics about the database including sessions, messages, contacts, and commands
- *     tags: [Database]
- *     responses:
- *       200:
- *         description: Database statistics
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     totalSessions:
- *                       type: integer
- *                     activeSessions:
- *                       type: integer
- *                     totalMessages:
- *                       type: integer
- *                     totalContacts:
- *                       type: integer
- *                     totalCommands:
- *                       type: integer
- *                     messagesToday:
- *                       type: integer
- *                     databaseSize:
- *                       type: string
- */
+// GET /database/stats - Get database statistics
 router.get("/stats", (req, res) => {
   try {
     const stats = db.getStats();
@@ -54,9 +20,7 @@ router.get("/stats", (req, res) => {
   }
 });
 
-/**
- * GET /database/sessions - Get all sessions from database
- */
+// GET /database/sessions - Get all sessions from database
 router.get("/sessions", (req, res) => {
   try {
     const sessions = db.getAllSessions();
@@ -74,9 +38,7 @@ router.get("/sessions", (req, res) => {
   }
 });
 
-/**
- * GET /database/sessions/:id - Get specific session
- */
+// GET /database/sessions/:id - Get specific session
 router.get("/sessions/:id", (req, res) => {
   try {
     const { id } = req.params;
@@ -102,58 +64,7 @@ router.get("/sessions/:id", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /database/messages:
- *   get:
- *     summary: Get messages with filters
- *     description: Retrieve messages filtered by session or chat with pagination
- *     tags: [Database]
- *     parameters:
- *       - in: query
- *         name: sessionId
- *         schema:
- *           type: string
- *           default: default
- *         description: Session ID to filter messages (optional, defaults to "default")
- *       - in: query
- *         name: chatId
- *         schema:
- *           type: string
- *         description: Chat ID to filter messages (optional, overrides sessionId)
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 50
- *         description: Maximum number of messages to return
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *           default: 0
- *         description: Number of messages to skip (for pagination)
- *     responses:
- *       200:
- *         description: List of messages
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 limit:
- *                   type: integer
- *                 offset:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Message'
- */
+// GET /database/messages - Get messages with filters
 router.get("/messages", (req, res) => {
   try {
     const { sessionId = "default", chatId, limit = 50, offset = 0 } = req.query;
@@ -184,10 +95,7 @@ router.get("/messages", (req, res) => {
   }
 });
 
-/**
- * GET /database/messages/search - Search messages
- * Query params: query, sessionId, limit
- */
+// GET /database/messages/search - Search messages
 router.get("/messages/search", (req, res) => {
   try {
     const { query, sessionId, limit = 50 } = req.query;
@@ -216,45 +124,7 @@ router.get("/messages/search", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /database/contacts:
- *   get:
- *     summary: Get contacts for a session
- *     description: Retrieve all contacts associated with a session
- *     tags: [Database]
- *     parameters:
- *       - in: query
- *         name: sessionId
- *         schema:
- *           type: string
- *           default: default
- *         description: Session ID (optional, defaults to "default")
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 100
- *         description: Maximum number of contacts to return
- *     responses:
- *       200:
- *         description: List of contacts
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 sessionId:
- *                   type: string
- *                 count:
- *                   type: integer
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Contact'
- */
+// GET /database/contacts - Get contacts for a session
 router.get("/contacts", (req, res) => {
   try {
     const { sessionId = "default", limit = 100 } = req.query;
@@ -276,10 +146,7 @@ router.get("/contacts", (req, res) => {
   }
 });
 
-/**
- * GET /database/contacts/top - Get top contacts by message count
- * Query params: sessionId (optional, defaults to "default"), limit
- */
+// GET /database/contacts/top - Get top contacts by message count
 router.get("/contacts/top", (req, res) => {
   try {
     const { sessionId = "default", limit = 10 } = req.query;
@@ -301,10 +168,7 @@ router.get("/contacts/top", (req, res) => {
   }
 });
 
-/**
- * GET /database/commands/stats - Get command usage statistics
- * Query params: sessionId, limit
- */
+// GET /database/commands/stats - Get command usage statistics
 router.get("/commands/stats", (req, res) => {
   try {
     const { sessionId, limit = 10 } = req.query;
@@ -325,10 +189,7 @@ router.get("/commands/stats", (req, res) => {
   }
 });
 
-/**
- * POST /database/cleanup - Cleanup old data
- * Body: { daysToKeep: 30 }
- */
+// POST /database/cleanup - Cleanup old data
 router.post("/cleanup", (req, res) => {
   try {
     const { daysToKeep = 30 } = req.body;

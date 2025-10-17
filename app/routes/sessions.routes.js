@@ -5,30 +5,7 @@ const helpers = require("../utils/helpers");
 
 const router = express.Router();
 
-/**
- * @swagger
- * /sessions:
- *   get:
- *     summary: List all WhatsApp sessions
- *     description: Returns a list of all active and inactive WhatsApp sessions
- *     tags: [Sessions]
- *     responses:
- *       200:
- *         description: List of sessions
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 count:
- *                   type: integer
- *                 sessions:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Session'
- */
+// GET /sessions - List all WhatsApp sessions
 router.get("/", (req, res) => {
   try {
     const sessions = sessionManager.getAllSessions();
@@ -43,54 +20,7 @@ router.get("/", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /sessions:
- *   post:
- *     summary: Create a new WhatsApp session
- *     description: Creates a new WhatsApp session with the specified configuration
- *     tags: [Sessions]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - sessionId
- *             properties:
- *               sessionId:
- *                 type: string
- *                 description: Unique identifier for the session
- *                 example: customer-abc
- *               chromePath:
- *                 type: string
- *                 description: Path to Chrome executable (optional)
- *               headless:
- *                 type: boolean
- *                 description: Run Chrome in headless mode (optional)
- *                 default: false
- *     responses:
- *       201:
- *         description: Session created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 session:
- *                   $ref: '#/components/schemas/Session'
- *       400:
- *         description: Invalid request
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
+// POST /sessions - Create a new WhatsApp session
 router.post("/", async (req, res) => {
   try {
     const { sessionId, chromePath, headless } = req.body;
@@ -119,10 +49,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-/**
- * GET /sessions/:sessionId
- * Get session info
- */
+// GET /sessions/:sessionId - Get session info
 router.get("/:sessionId", (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -145,10 +72,7 @@ router.get("/:sessionId", (req, res) => {
   }
 });
 
-/**
- * DELETE /sessions/:sessionId
- * Delete a session
- */
+// DELETE /sessions/:sessionId - Delete a session
 router.delete("/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -164,11 +88,7 @@ router.delete("/:sessionId", async (req, res) => {
   }
 });
 
-/**
- * POST /sessions/:sessionId/send
- * Send message through a specific session
- * Body: { phoneNumber, message }
- */
+// POST /sessions/:sessionId/send - Send message through a specific session
 router.post("/:sessionId/send", async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -199,10 +119,7 @@ router.post("/:sessionId/send", async (req, res) => {
   }
 });
 
-/**
- * GET /sessions/:sessionId/status
- * Check session status
- */
+// GET /sessions/:sessionId/status - Check session status
 router.get("/:sessionId/status", (req, res) => {
   try {
     const { sessionId } = req.params;
