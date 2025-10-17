@@ -7,6 +7,7 @@ Sistema modular e escalável para integração com WhatsApp usando Node.js.
 - 🔐 Autenticação persistente com LocalAuth
 - 📱 **Suporte a múltiplas sessões** (múltiplas contas WhatsApp)
 - 💾 **Persistência de dados com SQLite**
+- 🤖 **Bot de IA com Groq** (respostas automáticas inteligentes)
 - 🎯 Sistema de comandos extensível
 - 🔌 Webhook para integração externa
 - 🎨 Sistema de logging estruturado
@@ -20,10 +21,11 @@ Sistema modular e escalável para integração com WhatsApp usando Node.js.
 app/
 ├── config/              # Configurações centralizadas
 │   └── index.js
-├── services/            # Serviços (WhatsApp, Database, etc)
+├── services/            # Serviços (WhatsApp, Database, AI, etc)
 │   ├── whatsapp.service.js
 │   ├── session.manager.js
-│   └── database.service.js
+│   ├── database.service.js
+│   └── groq.service.js
 ├── handlers/            # Handlers de eventos e mensagens
 │   ├── event.handler.js
 │   └── message.handler.js
@@ -32,7 +34,8 @@ app/
 │   ├── ping.command.js
 │   ├── help.command.js
 │   ├── info.command.js
-│   └── stats.command.js
+│   ├── stats.command.js
+│   └── ai.command.js
 ├── routes/              # Rotas da API
 │   ├── sessions.routes.js
 │   └── database.routes.js
@@ -108,12 +111,66 @@ O ZapNode inclui documentação interativa da API usando **Swagger UI**:
 #### Webhook
 - `POST /webhook` - Receber mensagens externas
 
-## �📝 Comandos Disponíveis
+## 📝 Comandos Disponíveis
 
 - `!ping` - Testa a responsividade do bot
 - `!help` - Mostra todos os comandos disponíveis
 - `!info` - Informações do sistema
 - `!stats` - Estatísticas do database
+- `!ai status` - Status do bot de IA
+- `!ai stats` - Estatísticas do bot de IA
+- `!ai clear` - Limpar histórico de conversação
+
+## 🤖 Bot de IA com Groq
+
+O ZapNode integra com a **Groq API** para fornecer respostas automáticas inteligentes usando modelos de linguagem avançados (LLMs).
+
+### Características do Bot de IA:
+- ✅ Respostas automáticas em conversas naturais
+- 🧠 Mantém contexto da conversação (últimas 10 mensagens)
+- 🌐 Multi-idioma (responde no idioma do usuário)
+- ⚡ Velocidade ultrarrápida com Groq
+- 🔧 Totalmente configurável via variáveis de ambiente
+
+### Configuração Rápida:
+
+1. **Obter API Key do Groq:**
+   - Acesse: https://console.groq.com/
+   - Crie uma conta gratuita
+   - Gere sua API key
+
+2. **Configurar no .env:**
+```env
+GROQ_API_KEY=sua_api_key_aqui
+AI_RESPONSES=true
+GROQ_MODEL=llama-3.3-70b-versatile
+```
+
+3. **Reiniciar servidor:**
+```bash
+npm start
+```
+
+### Comandos do Bot de IA:
+```bash
+!ai status  # Ver status e configurações
+!ai stats   # Ver estatísticas de uso
+!ai clear   # Limpar histórico desta conversa
+```
+
+### Exemplo de Conversa:
+```
+Você: Olá!
+Bot: Olá! Como posso ajudá-lo hoje?
+
+Você: Me fale sobre Angola
+Bot: Angola é um país localizado na costa ocidental da África...
+
+Você: Qual é a capital?
+Bot: A capital de Angola é Luanda, que também é a cidade mais populosa do país.
+```
+
+**📚 Documentação completa:** [GROQ_AI.md](docs/GROQ_AI.md)
 
 ## 🔧 Adicionar Novos Comandos
 

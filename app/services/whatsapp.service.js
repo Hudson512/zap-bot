@@ -3,6 +3,7 @@ const config = require("../config");
 const logger = require("../utils/logger");
 const EventHandler = require("../handlers/event.handler");
 const messageHandler = require("../handlers/message.handler");
+const groqService = require("./groq.service");
 
 class WhatsAppService {
   constructor() {
@@ -63,6 +64,16 @@ class WhatsAppService {
         logger.info(`📱 WhatsApp Web Version: ${version}`);
       } catch (error) {
         logger.warn("Could not get WhatsApp Web version:", error.message);
+      }
+      
+      // Initialize Groq AI service if enabled
+      if (config.features.aiResponses) {
+        try {
+          groqService.initialize();
+        } catch (error) {
+          logger.error("Failed to initialize Groq service:", error.message);
+          logger.warn("AI responses will be disabled");
+        }
       }
       
       await this.eventHandler.onReady();

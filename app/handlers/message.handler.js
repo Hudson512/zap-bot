@@ -2,6 +2,8 @@ const logger = require("../utils/logger");
 const helpers = require("../utils/helpers");
 const commandRegistry = require("../commands");
 const db = require("../services/database.service");
+const groqService = require("../services/groq.service");
+const config = require("../config");
 
 class MessageHandler {
   async handle(message, sessionId = "default") {
@@ -115,11 +117,33 @@ class MessageHandler {
 
   async handleRegularMessage(message, sessionId = "default") {
     // Handle regular messages here
-    // You can add custom logic, AI responses, etc.
     logger.debug("Regular message received");
     
-    // Example: Auto-reply feature (can be enabled/disabled in config)
-    // await message.reply("Thanks for your message!");
+    // Check if AI responses are enabled
+    if (!config.features.aiResponses) {
+      logger.debug("AI responses disabled in config");
+      return;
+    }
+
+    // Generate chat ID for conversation context
+    const contactNumber = message.from;
+    const chatId = `${sessionId}-${contactNumber}`;
+
+    try {
+      // Generate AI response using Groq
+      const aiResponse = await groqService.generateResponse(
+        message.body,
+        chatId,
+        sessionId
+      );
+
+      // Send AI response back to user
+      await message.reply(aiResponse);
+
+      logger.success(`AI response sent to ${contactNumber}`);
+    } catch (error) {
+      logger.error("Error sending AI response:", error.message);
+    }
   }
 }
 
