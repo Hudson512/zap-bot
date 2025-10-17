@@ -25,7 +25,7 @@ npm install groq-sdk
 
 ```env
 # Groq AI Configuration
-GROQ_API_KEY=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
+GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
 GROQ_TEMPERATURE=0.7
 GROQ_MAX_TOKENS=1024
